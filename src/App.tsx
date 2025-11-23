@@ -1,37 +1,64 @@
-import { Assets as NavigationAssets } from '@react-navigation/elements';
-import { DarkTheme, DefaultTheme } from '@react-navigation/native';
-import { Asset } from 'expo-asset';
-import { createURL } from 'expo-linking';
-import * as SplashScreen from 'expo-splash-screen';
 import * as React from 'react';
-import { useColorScheme } from 'react-native';
-import { Navigation } from './navigation';
+import { StyleSheet, View, FlatList, Text } from 'react-native';
+import TodoInput from './components/TodoInput';
+import TodoItem from './components/TodoItem';
+import { loadTasks, saveTasks } from './services/storage';
 
-Asset.loadAsync([
-  ...NavigationAssets,
-  require('./assets/newspaper.png'),
-  require('./assets/bell.png'),
-]);
+type Task = {
+  id: string;
+  text: string;
+  done: boolean;
+};
 
-SplashScreen.preventAutoHideAsync();
+export function Home() {
+  const [tasks, setTasks] = React.useState<Task[]>([]);
 
-const prefix = createURL('/');
+  React.useEffect(() => {
+    (async () => {
+      const loaded = await loadTasks();
+      setTasks(loaded);
+    })();
+  }, []);
 
-export function App() {
-  const colorScheme = useColorScheme();
+  const persistAndSet = async (newTasks: Task[]) => {
+    setTasks(newTasks);
+    await saveTasks(newTasks);
+  };
 
-  const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme
+  const addTask = async (text: string) => {
+    if (!text.trim()) return;
+    const newTask: Task = { id: String(Date.now()), text: text.trim(), done: false };
+    await persistAndSet([newTask, ...tasks]);
+  };
+
+  const toggleTask = async (id: string) => {
+    const updated = tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t));
+    await persistAndSet(updated);
+  };
 
   return (
-    <Navigation
-      theme={theme}
-      linking={{
-        enabled: 'auto',
-        prefixes: [prefix],
-      }}
-      onReady={() => {
-        SplashScreen.hideAsync();
-      }}
-    />
+    <View style={styles.container}>
+      <Text style={styles.title}>Todo list</Text>
+      <TodoInput onAdd={addTask} />
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TodoItem task={item} onPress={() => toggleTask(item.id)} />
+        )}
+        contentContainerStyle={styles.list}
+      />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  title: { fontSize: 20, fontWeight: '600', textAlign: 'center', marginBottom: 12 },
+  list: { paddingTop: 8 },
+});
+
+export default function App() {
+  return <Home />;
+}
+App.displayName = 'App';
