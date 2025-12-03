@@ -1,12 +1,36 @@
 import * as React from 'react';
 import { View, TextInput, StyleSheet, Pressable, Text } from 'react-native';
 
-export function TodoInput({ onAdd }: { onAdd: (text: string) => void }) {
+export function SaveButton({
+  onPress,
+  title = 'Save',
+  style,
+  textStyle,
+}: {
+  onPress: () => void;
+  title?: string;
+  style?: any;
+  textStyle?: any;
+}) {
+  return (
+    <Pressable onPress={onPress} style={style ?? styles.button}>
+      <Text style={textStyle ?? styles.buttonText}>{title}</Text>
+    </Pressable>
+  );
+}
+
+export function TodoInput({
+  onAdd,
+  onSave,
+}: {
+  onAdd: (text: string) => void;
+  onSave?: () => void;
+}) {
   const [value, setValue] = React.useState('');
 
   const submit = () => {
     if (!value.trim()) return;
-    onAdd(value);
+    onAdd(value.trim());
     setValue('');
   };
 
@@ -20,9 +44,7 @@ export function TodoInput({ onAdd }: { onAdd: (text: string) => void }) {
         onSubmitEditing={submit}
         returnKeyType="done"
       />
-      <Pressable onPress={submit} style={styles.button}>
-        <Text style={styles.buttonText}>Save</Text>
-      </Pressable>
+      <SaveButton onPress={onSave ?? (() => {})} />
     </View>
   );
 }
